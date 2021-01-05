@@ -1,7 +1,7 @@
 # Network ICMP and Sniffing
 
 Requirements:
-1) myping sends ICMP ECHO REQUEST and receives ICMP-ECHO-REPLY (one
+1) myping sends `ICMP ECHO REQUEST` and receives `ICMP-ECHO-REPLY` (one
 time is enough)
 2) myping calculates the RTT time in milliseconds and microseconds.
 <p>&nbsp;</p>
