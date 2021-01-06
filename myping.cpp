@@ -32,26 +32,24 @@
 /*****************************************************************************/
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <sys/time.h> // gettimeofday()
+#include <sys/time.h>
 
 // IPv4 header len without options
 #define IP4_HDRLEN 20
+
 // ICMP header len for echo req
 #define ICMP_HDRLEN 8
 #define SOURCE_IP "127.0.0.1"
 // i.e the gateway or ping to google.com for their ip-address
 #define DESTINATION_IP "192.168.1.1"
-#define PCKT_LEN 1024
 
 // Checksum algorithm
 unsigned short calculate_checksum(unsigned short * paddress, int len);
@@ -109,23 +107,27 @@ int main() {
     int sock = -1;
     if ((sock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
         fprintf (stderr, "socket() failed with error: %d", errno);
-        fprintf (stderr, "To create a raw socket, the process needs to be run by Admin/root user.\n\n");
+        fprintf (stderr, "To create a raw socket, the process needs to be run by Admin/root user (sudo).\n\n");
         return -1;
     }
 
 /*--------------------------------------------------------------------*/
-/*--- Send the ICMP ECHO request packet                            ---*/
+/*--- Send the ICMP ECHO REQUEST packet                            ---*/
 /*--------------------------------------------------------------------*/
+
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     // Send the packet using sendto() for sending Datagrams.
     int sent_size  = sendto(sock, packet,  ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &dest_in, sizeof (dest_in));
     if (sent_size == -1) {
         fprintf (stderr, "sendto() failed with error: %d", errno);
         return -1;
     }
-    printf("Sent one packet. \nsent: %d \n",sent_size);
+    printf("\nSent one packet. \nsent: %d \n\n",sent_size);
 
 /*--------------------------------------------------------------------*/
-/*--- Receive the ICMP-ECHO-REPLY packet                           ---*/
+/*--- Receive the ICMP ECHO REPLY packet                           ---*/
 /*--------------------------------------------------------------------*/
     bzero(packet,IP_MAXPACKET);
     socklen_t len = sizeof(dest_in);
@@ -133,10 +135,22 @@ int main() {
     while (1) {
         get_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr *) &dest_in, &len);
         if (get_size > 0) {
-            printf("Get one packet.\nget: %d \n",get_size);
+            printf("Get one packet.\nget: %d (+ IP4_HDRLEN) \n\n",get_size);
             break;
         }
     }
+
+    gettimeofday(&end, NULL);
+
+    char reply[IP_MAXPACKET];
+    memcpy(reply, packet + ICMP_HDRLEN + IP4_HDRLEN, datalen);
+    printf("ICMP reply: %s \n", reply);
+
+    float milliseconds = (end.tv_sec - start.tv_sec) * 1000.0f + (end.tv_usec - start.tv_usec) / 1000.0f;
+    unsigned long microseconds = (end.tv_sec - start.tv_sec) * 1000.0f + (end.tv_usec - start.tv_usec);
+    printf("RTT time in milliseconds: %f \n", milliseconds);
+    printf("RTT time in microseconds: %ld\n\n", microseconds );
+
 
     // Close the raw socket descriptor.
     close(sock);
@@ -144,9 +158,10 @@ int main() {
     return 0;
 }
 
-// Compute checksum (RFC 1071).
-unsigned short calculate_checksum(unsigned short * paddress, int len)
-{
+/*--------------------------------------------------------------------*/
+/*--- Checksum - Calculate the ICMP header checksum                ---*/
+/*--------------------------------------------------------------------*/
+unsigned short calculate_checksum(unsigned short * paddress, int len) {
     int nleft = len;
     int sum = 0;
     unsigned short * w = paddress;
