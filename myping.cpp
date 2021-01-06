@@ -126,7 +126,7 @@ int main() {
     memcpy(reply, packet + ICMP_HDRLEN + IP4_HDRLEN, datalen);
     printf("ICMP reply: %s \n", reply);
 
-    // second > milliseconds (10^3 seconds) > microseconds (10^6 seconds)
+    // second > milliseconds (10^(-3) seconds) > microseconds (10^(-6) seconds)
     float milliseconds = (end.tv_sec - start.tv_sec) * 1000.0f + (end.tv_usec - start.tv_usec) / 1000.0f;
     unsigned long microseconds = (end.tv_sec - start.tv_sec) * 1000.0f + (end.tv_usec - start.tv_usec);
     printf("RTT time in milliseconds: %f \n", milliseconds);
