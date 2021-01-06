@@ -51,19 +51,17 @@
 #define SOURCE_IP "127.0.0.1"
 // i.e the gateway or ping to google.com for their ip-address
 #define DESTINATION_IP "192.168.1.1"
+#define PCKT_LEN 1024
 
 // Checksum algorithm
 unsigned short calculate_checksum(unsigned short * paddress, int len);
 
 int main() {
-
-    char data[IP_MAXPACKET] = "This is the ping.\n";
-    int datalen = strlen(data) + 1;
-
 /*--------------------------------------------------------------------*/
 /*--- ICMP header                                                  ---*/
 /*--------------------------------------------------------------------*/
     struct icmp icmphdr; // ICMP-header
+
     // Message Type (8 bits): ICMP_ECHO_REQUEST
     icmphdr.icmp_type = ICMP_ECHO;
 
@@ -87,21 +85,27 @@ int main() {
     // ICMP header.
     memcpy (packet, &icmphdr, ICMP_HDRLEN);
 
+    char data[IP_MAXPACKET] = "This is the ping.\n";
+    int datalen = strlen(data) + 1;
+
     // ICMP data.
     memcpy (packet + ICMP_HDRLEN, data, datalen);
 
     // Calculate the ICMP header checksum
     icmphdr.icmp_cksum = calculate_checksum((unsigned short *) packet, ICMP_HDRLEN + datalen);
-    memcpy ((packet + ICMP_HDRLEN), &icmphdr, ICMP_HDRLEN);
+    memcpy (packet, &icmphdr, ICMP_HDRLEN);
 
+/*--------------------------------------------------------------------*/
+/*--- Create Raw Socket                                            ---*/
+/*--------------------------------------------------------------------*/
     struct sockaddr_in dest_in;
-    memset (&dest_in, 0, sizeof (struct sockaddr_in));
+    memset(&dest_in, 0, sizeof (struct sockaddr_in));
     dest_in.sin_family = AF_INET;
 
     // The port is irrelant for Networking and therefore was zeroed.
     dest_in.sin_addr.s_addr = inet_addr(DESTINATION_IP);
 
-    // Create raw socket for IP-RAW (make IP-header by yourself)
+    // Create raw socket for IP-ICMP
     int sock = -1;
     if ((sock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
         fprintf (stderr, "socket() failed with error: %d", errno);
@@ -109,10 +113,29 @@ int main() {
         return -1;
     }
 
-    // Send the packet using sendto() for sending datagrams.
-    if (sendto (sock, packet,  ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &dest_in, sizeof (dest_in)) == -1) {
+/*--------------------------------------------------------------------*/
+/*--- Send the ICMP ECHO request packet                            ---*/
+/*--------------------------------------------------------------------*/
+    // Send the packet using sendto() for sending Datagrams.
+    int sent_size  = sendto(sock, packet,  ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &dest_in, sizeof (dest_in));
+    if (sent_size == -1) {
         fprintf (stderr, "sendto() failed with error: %d", errno);
         return -1;
+    }
+    printf("Sent one packet. \nsent: %d \n",sent_size);
+
+/*--------------------------------------------------------------------*/
+/*--- Receive the ICMP-ECHO-REPLY packet                           ---*/
+/*--------------------------------------------------------------------*/
+    bzero(packet,IP_MAXPACKET);
+    socklen_t len = sizeof(dest_in);
+    int get_size = -1;
+    while (1) {
+        get_size = recvfrom(sock, packet, sizeof(packet), 0, (struct sockaddr *) &dest_in, &len);
+        if (get_size > 0) {
+            printf("Get one packet.\nget: %d \n",get_size);
+            break;
+        }
     }
 
     // Close the raw socket descriptor.
