@@ -1,36 +1,3 @@
-//
-// Created by dor on 05/01/2021.
-//
-
-/*****************************************************************************/
-/****************************  myping.cpp  ***********************************/
-/***                                                                       ***/
-/***  1) To be able to read from the raw socket the reply, use instead     ***/
-/***     of IPPROTO_RAW - IPPROTO_ICMP:                                    ***/
-/***     socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);                         ***/
-/***                                                                       ***/
-/***  2) Do not "cook" IP-header - delete that code.                       ***/
-/***     Thus, with IPPROTO_ICMP the application is in charge only for     ***/
-/***     ICMP packet, header and data, not for the IP-header.              ***/
-/***                                                                       ***/
-/***  3) "Cook" and add only ICMP, whereas kernel will add IPv4 header     ***/
-/***     by itself.                                                        ***/
-/***                                                                       ***/
-/***  4) Remove setsockopt() IP_HDRINCL since we are not "cooking" the     ***/
-/***     IP-header.                                                        ***/
-/***                                                                       ***/
-/***  5) When receiving, though, we are getting the whole IP packet and    ***/
-/***     must extract the ICMP reply.                                      ***/
-/***                                                                       ***/
-/***  6) Note, that you get a copy of all ICMP packets sent to the host    ***/
-/***     and should filter the relevant.                                   ***/
-/***                                                                       ***/
-/***  7) Check the sent ICMP packet in Wireshark.                          ***/
-/***     If the checksum is not correct (zero), you missed to remove       ***/
-/***     IP-header offset in ICMP-header checksum copying or calculations. ***/
-/*****************************************************************************/
-/*****************************************************************************/
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -50,6 +17,19 @@
 #define SOURCE_IP "127.0.0.1"
 // i.e the gateway or ping to google.com for their ip-address
 #define DESTINATION_IP "192.168.1.1"
+
+/*****************************************************************************/
+/****************************  myping.cpp  ***********************************/
+/***  Requirements:                                                        ***/
+/***                                                                       ***/
+/***  1) myping.cpp sends ICMP ECHO REQUEST and receives                   ***/
+/***     ICMP-ECHO-REPLY (one time is enough).                             ***/
+/***                                                                       ***/
+/***  2) myping.cpp calculates the RTT time in milliseconds and            ***/
+/***     microseconds.                                                     ***/
+/***                                                                       ***/
+/*****************************************************************************/
+/*****************************************************************************/
 
 // Checksum algorithm
 unsigned short calculate_checksum(unsigned short * paddress, int len);
