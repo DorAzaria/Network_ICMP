@@ -49,7 +49,7 @@ int main() {
     // Identifier (16 bits): some number to trace the response.
     // It will be copied to the response packet and used to map response to the request sent earlier.
     // Thus, it serves as a Transaction-ID when we need to make "ping"
-    icmphdr.icmp_id = 18; // hai
+    icmphdr.icmp_id = 18;
 
     // Sequence Number (16 bits): starts at 0
     icmphdr.icmp_seq = 0;
