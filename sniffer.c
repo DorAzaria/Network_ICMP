@@ -92,8 +92,11 @@ void got_packet(unsigned char* buffer, int size) {
 * If the IP Destination is known,
 * then print the data.
 **********************************************/
-        if((unsigned int)(icmph->type) != 96) {
-
+        unsigned int type = (unsigned int)(icmph->type);
+        if(type != 96) {
+            char *icmp_type_names[] = {"Echo Reply","Unassigned","Unassigned","Destination Unreachable",
+                                        "Source Quench","Redirect","Alternate Host Address","Unassigned",
+                                        "Echo","Router Advertisement","Router Selection","Time Exceeded"};
             struct sockaddr_in source,dest;
             memset(&source, 0, sizeof(source));
             source.sin_addr.s_addr = iph->saddr;
@@ -108,6 +111,9 @@ void got_packet(unsigned char* buffer, int size) {
             printf("\nICMP Header\n");
             printf("---> Type : %d\n", (unsigned int) (icmph->type));
             printf("---> Code : %d\n", (unsigned int) (icmph->code));
+            if( type <= 11) {
+                printf("---> Info : %s\n",icmp_type_names[type]);
+            }
 
         }
     }
