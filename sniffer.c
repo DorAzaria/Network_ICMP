@@ -46,159 +46,99 @@
  **********************************************/
 #include<netinet/in.h>
 #include<stdio.h>
+#include <stdlib.h>
 #include<string.h>
 #include<netinet/ip_icmp.h>
 #include<netinet/ip.h>
 #include<net/ethernet.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include <linux/if_packet.h>
+#include <linux/if_ether.h>
+#include <linux/in.h>
+#include <net/if.h>
 #include <unistd.h>
 #include <pcap.h>
 #define ICMP_HDR_LEN 4
 
 void print_icmp_packet(char* , int);
 int icmp=0;
-/**********************************************
- * Get captured packet
- **********************************************/
+
 int main() {
     int PACKET_LEN = IP_MAXPACKET;
     struct sockaddr saddr;
+    struct ifreq ethreq;
     struct packet_mreq mr;
 
-    // Create the raw socket
-    // * htons(ETH_P_ALL) -> Capture all types of packets
-    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-    if (sock == -1) {
-        printf("socket() failed with error");
-        printf("To create a raw socket, the process needs to be run by Admin/root user (sudo).\n\n");
-        return -1;
+/**********************************************
+ * Create the raw socket
+ * -> htons(ETH_P_ALL): Capture all types of packets
+ **********************************************/
+    int sock;
+    if ( (sock=socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+        perror("\nRaw socket create failed.\n");
+        exit(1);
     }
 
-    // Turn on the promiscuous mode.
+/**********************************************
+ * THIS PART ISN'T WORKING!
+ * // set NIC work on promiscuous mode
+   // Turn on the promiscuous mode.
     mr.mr_type = PACKET_MR_PROMISC;
     setsockopt(sock, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr));
+    strncpy(ethreq.ifr_name,"eth3", IFNAMSIZ);
+    if (ioctl(sock, SIOCGIFFLAGS, &ethreq)==-1) {
+        perror("Promiscuous mode set failed.\n");
+        close(sock);
+        exit(1);
+    }
+ **********************************************/
 
-    // Getting captured packets
+/**********************************************
+ * Get captured packet
+ **********************************************/
     char buffer[IP_MAXPACKET];
     socklen_t len;
     while (1) {
         bzero(buffer,IP_MAXPACKET);
         len = sizeof(saddr);
         int data_size = recvfrom(sock, buffer, PACKET_LEN, 0, &saddr, &len);
+
         if (data_size >= 0){
-            print_icmp_packet(buffer, data_size);
+
+            struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ethhdr));
+            struct sockaddr_in source, dest;
+
+ /**********************************************
+ * Check if it's a ICMP protocol.
+ **********************************************/
+            if (iph->protocol == IPPROTO_ICMP) {
+
+                printf("============================================");
+                printf("\nICMP packet %d, data size: %d \n", ++icmp, data_size);
+
+                memset(&source, 0, sizeof(source));
+                source.sin_addr.s_addr = iph->saddr;
+
+                memset(&dest, 0, sizeof(dest));
+                dest.sin_addr.s_addr = iph->daddr;
+
+                printf("|-IP Header\n");
+                printf("   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
+                printf("   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
+
+                int iphdrlen = iph->ihl * ICMP_HDR_LEN;
+                struct icmphdr *icmph = (struct icmphdr *) (buffer + iphdrlen + sizeof(struct ethhdr));
+                printf("|-ICMP Header\n");
+                printf("   |-Type             : %d\n", (unsigned int)(icmph->type));
+                printf("   |-Code             : %d\n", icmph->code);
+
+            }
         }
     }
+
     close(sock);
     return 0;
 }
-
-void print_icmp_packet(char *buffer, int size) {
-    struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ethhdr));
-    struct sockaddr_in source, dest;
-
-    if (iph->protocol == IPPROTO_ICMP) {
-        printf("============================================");
-        printf("\nICMP packet %d, data size: %d \n", ++icmp, size);
-
-        memset(&source, 0, sizeof(source));
-        source.sin_addr.s_addr = iph->saddr;
-
-        memset(&dest, 0, sizeof(dest));
-        dest.sin_addr.s_addr = iph->daddr;
-
-        printf("|-IP Header\n");
-        printf("   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
-        printf("   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
-
-        int iphdrlen = iph->ihl * ICMP_HDR_LEN;
-        struct icmphdr *icmph = (struct icmphdr *) (buffer + iphdrlen + sizeof(struct ethhdr));
-        printf("|-ICMP Header\n");
-        printf("   |-Type             : %d\n", (unsigned int)(icmph->type));
-        printf("   |-Code             : %d\n", icmph->code);
-
-    }
-
-}
-
-//
-//int main() {
-//    pcap_t *handle;
-//    pcap_if_t *alldevsp , *device;
-//    char errbuf[PCAP_ERRBUF_SIZE];
-//    struct bpf_program fp;
-//    char filter_exp[] = "ip proto icmp";
-//    bpf_u_int32 net;
-//
-//    char *devname , devs[100][100];
-//    int count = 1 , n;
-//
-//    //First get the list of available devices
-//    printf("Finding available devices ... ");
-//    if( pcap_findalldevs( &alldevsp , errbuf) )
-//    {
-//        printf("Error finding devices : %s" , errbuf);
-//        exit(1);
-//    }
-//    printf("Done");
-//
-//    //Print the available devices
-//    printf("\nAvailable Devices are :\n");
-//    for(device = alldevsp ; device != NULL ; device = device->next)
-//    {
-//        printf("%d. %s - %s\n" , count , device->name , device->description);
-//        if(device->name != NULL)
-//        {
-//            strcpy(devs[count] , device->name);
-//        }
-//        count++;
-//    }
-//
-//    //Ask user which device to sniff
-//    printf("Enter the number of the device you want to sniff : ");
-//    scanf("%d" , &n);
-//    devname = devs[n];
-//    // Step 1: Open live pcap session on NIC with name eth3
-//    handle = pcap_open_live(devname, BUFSIZ, 1, 1000, errbuf);
-//
-//    if(handle == NULL) {
-//        printf("Couldn't open device.\n");
-//        return -1;
-//    }
-//    // Step 2: Compile filter_exp into BPF psuedo-code
-//    pcap_setfilter(handle, &fp);
-//
-//    // Step 3: Capture packets
-//    pcap_loop(handle, -1, print_icmp_packet, NULL);
-//
-//    pcap_close(handle);   //Close the handle
-//    return 0;
-//}
-//void print_icmp_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer) {
-//    struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ethhdr));
-//    struct sockaddr_in source, dest;
-//
-//    if (iph->protocol == IPPROTO_ICMP) {
-//        printf("============================================");
-//        printf("\nICMP packet %d, data size: %d \n", ++icmp, header->len);
-//
-//        memset(&source, 0, sizeof(source));
-//        source.sin_addr.s_addr = iph->saddr;
-//
-//        memset(&dest, 0, sizeof(dest));
-//        dest.sin_addr.s_addr = iph->daddr;
-//
-//        printf("|-IP Header\n");
-//        printf("   |-Source IP        : %s\n",inet_ntoa(source.sin_addr));
-//        printf("   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
-//
-//        int iphdrlen = iph->ihl * ICMP_HDR_LEN;
-//        struct icmphdr *icmph = (struct icmphdr *) (buffer + iphdrlen + sizeof(struct ethhdr));
-//        printf("|-ICMP Header\n");
-//        printf("   |-Type             : %d\n", (unsigned int)(icmph->type));
-//        printf("   |-Code             : %d\n", (unsigned int)(icmph->code));
-//
-//    }
-//}
