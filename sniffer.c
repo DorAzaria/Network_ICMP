@@ -41,9 +41,7 @@
  * -> Allows programmers to specify filtering rules using
  *    human readable Boolean expressions.
  **********************************************/
-/**********************************************
- * Implementation:
- **********************************************/
+
 #include<netinet/in.h>
 #include<stdio.h>
 #include <stdlib.h>
@@ -62,6 +60,10 @@
 #include <unistd.h>
 #include <pcap.h>
 #define ICMP_HDR_LEN 4
+
+/**********************************************
+ * Implementation:
+ **********************************************/
 
 void print_icmp_packet(char* , int);
 int icmp=0;
