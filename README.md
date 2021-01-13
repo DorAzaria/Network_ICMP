@@ -8,7 +8,8 @@ time is enough)
   <img width="600" height="300" src="https://www.layerstack.com/img/docs/resources/pingdiagram2.jpg">
 </p>
 <p>&nbsp;</p>
-* PING (Packet Internet Groper) command is used to check the network connectivity between a source and destination  and it use ICMP(Internet Control Message Protocol) to send echo request messages to the destination and waiting for a response.
+
+* PING (Packet Internet Groper) command is used to check the network connectivity between a source and destination and it use ICMP(Internet Control Message Protocol) to send  echo request messages to the destination and waiting for a response.
 
 * ICMP is part of the Internet protocol suite as defined in RFC 792. ICMP messages are typically used for diagnostic or control purposes or generated in response to errors in IP   operations (as specified in RFC 1122). ICMP errors are directed to the source IP address of the originating packet.
 
