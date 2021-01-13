@@ -13,34 +13,6 @@
 /*****************************************************************************/
 /*****************************************************************************/
 
-/**********************************************
- * A Promiscuous Mode:
- *   is a mode for a wired network interface controller (NIC)
- *   or wireless network interface controller (WNIC) that causes the controller
- *   to pass all traffic it receives to the central processing unit (CPU) rather
- *   than passing only the frames that the controller is specifically programmed
- *   to receive.
- *   This mode is normally used for packet sniffing that takes place on a router
- *   or on a computer connected to a wired network or one being part of a wireless LAN.
- *   Interfaces are placed into promiscuous mode by software bridges often used with hardware
- *   virtualization.
- **********************************************/
-/**********************************************
-* A compiled BPF code:
-*   if the driver for the network interface supports promiscuous mode,
-*   it allows the interface to be put into that mode so that all packets
-*   on the network can be received, even those destined to other hosts.
-*   BPF allows a user-program to attach a filter to the socket,
-*   which tells the kernel to discard unwanted packets.
-**********************************************/
-/**********************************************
- * Packet Capturing using raw PCAP library:
- * -> It still uses raw sockets internally,
- *    but its API is standard across all platforms.
- *    OS specifics are hidden by PCAP’s implementation.
- * -> Allows programmers to specify filtering rules using
- *    human readable Boolean expressions.
- **********************************************/
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
@@ -140,8 +112,33 @@ void got_packet(unsigned char* buffer, int size) {
         }
     }
 }
+/**********************************************
+ * A Promiscuous Mode:
+ *   is a mode for a wired network interface controller (NIC)
+ *   or wireless network interface controller (WNIC) that causes the controller
+ *   to pass all traffic it receives to the central processing unit (CPU) rather
+ *   than passing only the frames that the controller is specifically programmed
+ *   to receive.
+ *   This mode is normally used for packet sniffing that takes place on a router
+ *   or on a computer connected to a wired network or one being part of a wireless LAN.
+ *   Interfaces are placed into promiscuous mode by software bridges often used with hardware
+ *   virtualization.
+ **********************************************/
 
+/**********************************************
+* A compiled BPF code:
+*   if the driver for the network interface supports promiscuous mode,
+*   it allows the interface to be put into that mode so that all packets
+*   on the network can be received, even those destined to other hosts.
+*   BPF allows a user-program to attach a filter to the socket,
+*   which tells the kernel to discard unwanted packets.
+**********************************************/
 
-
-
-
+/**********************************************
+ * Packet Capturing using raw PCAP library:
+ * -> It still uses raw sockets internally,
+ *    but its API is standard across all platforms.
+ *    OS specifics are hidden by PCAP’s implementation.
+ * -> Allows programmers to specify filtering rules using
+ *    human readable Boolean expressions.
+ **********************************************/
